@@ -1,6 +1,9 @@
+import java.text.MessageFormat;
 import java.util.Calendar;
+import java.util.Random;
 
 import twitter4j.Twitter;
+import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
 import twitter4j.auth.AccessToken;
 
@@ -12,48 +15,101 @@ import twitter4j.auth.AccessToken;
  * http.proxyPort=8080
  */
 
-class SakiTwitterBot{
+public class SakiTwitterBot{
+	public static String consumerKey = "P9518mK8pfvVim7Jy0R6skHpr";
+	public static String consumerSecret = "SUvzqHM9OVkJrZfwPWwLjNv583iYEmqJ2h5Ddv808hReEoy8AA";
+	public static String accessToken = "2470414818-5JbOyNpQvkWwnVyjAG4642dtzv0JP0rCOuhZYLD";
+	public static String accessTokenSecret = "oucBrk3lpJEses9d8rYoPNmlcihz7YuHZsHYC95SKvoRp";
+	public static Twitter twitter;
+	
 	public static void main(String args[]){
-		String accessToken = "2470414818-5JbOyNpQvkWwnVyjAG4642dtzv0JP0rCOuhZYLD";
-		String accessTokenSecret = "oucBrk3lpJEses9d8rYoPNmlcihz7YuHZsHYC95SKvoRp";
+		System.out.println("Running SakiTwitterBot");
 		AccessToken at = new AccessToken(accessToken, accessTokenSecret);
 		TwitterFactory tf = new TwitterFactory();
-		Twitter twitter = tf.getInstance(at);
+		twitter = tf.getInstance(at);
+		
+		// コンソールに日付を表示するための MessageFormat
+		MessageFormat mf = new MessageFormat("{0,date,yyyy/MM/dd HH:mm:ss}");
+		int sleep_time = 1000; // デフォルトの時間確認間隔
 		
 		while(true){
+			// 時間を取得
+			Calendar calendar = Calendar.getInstance();
+			int hour = calendar.get(Calendar.HOUR_OF_DAY);
+			Object[] calendar_objects = {calendar.getTime()};
+			// コンソールに表示するための時間Stringを取得
+			String calendar_string = mf.format(calendar_objects);
+			
 			try{
-				// �J�����_�[���擾
-				Calendar calendar = Calendar.getInstance();
-				int hour = calendar.get(Calendar.HOUR_OF_DAY);
+				// 12時のtweet
 				if(hour == 12){
-					twitter.updateStatus("�O����I���[�[�[�[�I�I");
+					if(isWeekday(calendar)){
+						twitter.updateStatus("前半戦終了ーーー！！");
+						System.out.println(calendar_string + " Succeeded to Tweet");
+						sleep_time = 1000;
+					}else{
+						// さあ、戦法前半戦開始です
+						tweetTherif();
+					}
 					Thread.sleep(7200000);
+				// 24時のtweet
 				}else if(hour == 0){
-					twitter.updateStatus(getWeekStr() + "�I���[�[�[�[�I�I");
+					String week_string = getWeekStr(calendar);
+					if(week_string.length() != 0){
+						twitter.updateStatus(week_string + "終了ーーー！！");
+						System.out.println(calendar_string + " Succeeded to Tweet");
+						sleep_time = 1000;
+					}else{
+						tweetTherif();
+					}
 					Thread.sleep(7200000);
+				}else{
+					sleep_time = 1000;
 				}
-				Thread.sleep(1000);
+				Thread.sleep(sleep_time);
 			}catch(Exception e){
-				System.out.println("�c�C�[�g�Ɏ��s���܂����B");
+				System.out.println(calendar_string + " Failed to Tweet");
+				if(sleep_time < 60000) sleep_time = sleep_time * 2;
 			}
 		}
 	}
 	
-	public static String getWeekStr(){
-		Calendar calender = Calendar.getInstance();
-		switch(calender.get(Calendar.DAY_OF_WEEK)){
-		case Calendar.MONDAY:
-			return "��N��";
+	public static String getWeekStr(Calendar calendar){
+		switch(calendar.get(Calendar.DAY_OF_WEEK)){
 		case Calendar.TUESDAY:
-			return "���N��";
+			return "先鋒戦";
 		case Calendar.WEDNESDAY:
-			return "������";
+			return "次鋒戦";
 		case Calendar.THURSDAY:
-			return "������";
+			return "中堅戦";
 		case Calendar.FRIDAY:
-			return "�叫��";
+			return "副将戦";
+		case Calendar.SATURDAY:
+			return "大将戦";
 		default:
-			return null;	
+			return "";	
 		}
 	}
+	
+	public static void tweetTherif() throws TwitterException{
+		if(therif.length == 0) return;
+		Random random = new Random();
+		twitter.updateStatus(therif[random.nextInt(therif.length)]);
+	}
+	
+	public static boolean isWeekday(Calendar calendar){
+		switch(calendar.get(Calendar.DAY_OF_WEEK)){
+		case Calendar.SATURDAY:
+		case Calendar.SUNDAY:
+			return false;
+		default:
+			return true;	
+		}
+	}
+	
+	public static String therif[] = {
+		"清一、対々和、三暗刻、三槓子、赤一、嶺上開花！",
+		"一番大好きな私になりたい〜♪",
+		"あなたがいて　わたしがいて　他の人は消えてしまった〜♪"
+	};
 }
