@@ -2,9 +2,15 @@ import java.text.MessageFormat;
 import java.util.Calendar;
 import java.util.Random;
 
+import twitter4j.Status;
+import twitter4j.StatusUpdate;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
+import twitter4j.TwitterStream;
+import twitter4j.TwitterStreamFactory;
+import twitter4j.User;
+import twitter4j.UserStreamAdapter;
 import twitter4j.auth.AccessToken;
 
 /*
@@ -21,16 +27,27 @@ public class SakiTwitterBot{
 	public static String accessToken = "2470414818-5JbOyNpQvkWwnVyjAG4642dtzv0JP0rCOuhZYLD";
 	public static String accessTokenSecret = "oucBrk3lpJEses9d8rYoPNmlcihz7YuHZsHYC95SKvoRp";
 	public static Twitter twitter;
+	public static AccessToken at;
 	
 	public static void main(String args[]){
+		new SakiTwitterBot();
+	}
+	
+	SakiTwitterBot(){
+
 		System.out.println("Running SakiTwitterBot");
-		AccessToken at = new AccessToken(accessToken, accessTokenSecret);
+		at = new AccessToken(accessToken, accessTokenSecret);
 		TwitterFactory tf = new TwitterFactory();
 		twitter = tf.getInstance(at);
 		
 		// コンソールに日付を表示するための MessageFormat
 		MessageFormat mf = new MessageFormat("{0,date,yyyy/MM/dd HH:mm:ss}");
 		int sleep_time = 1000; // デフォルトの時間確認間隔
+		
+		// TODO: DEBUG CODE
+		Mahjong m = new Mahjong();
+		m.haipai("@yoshiki_utakata");
+		connectStream();
 		
 		while(true){
 			// 時間を取得
@@ -72,6 +89,7 @@ public class SakiTwitterBot{
 				if(sleep_time < 60000) sleep_time = sleep_time * 2;
 			}
 		}
+		
 	}
 	
 	public static String getWeekStr(Calendar calendar){
@@ -109,7 +127,37 @@ public class SakiTwitterBot{
 	
 	public static String therif[] = {
 		"清一、対々和、三暗刻、三槓子、赤一、嶺上開花！",
-		"一番大好きな私になりたい〜♪",
-		"あなたがいて　わたしがいて　他の人は消えてしまった〜♪"
 	};
+	
+	public void connectStream(){
+		System.out.println("UserStreamに接続します...");
+		TwitterStreamFactory tsf = new TwitterStreamFactory();
+		TwitterStream ts = tsf.getInstance(at);
+		ts.addListener(new MyUserStreamAdapter());
+		ts.user();
+	}
+	class MyUserStreamAdapter extends UserStreamAdapter{
+		public void onStatus(Status status){
+			System.out.println(status.getUser().getName() + ": " + status.getText());
+			System.out.println(status.getInReplyToScreenName());
+			
+			if(status.getInReplyToScreenName().equals("sakijbot") && status.getText().indexOf("配牌") >= 0){
+				Mahjong m = new Mahjong();
+				MState ms = m.haipai(status.getUser().getScreenName());
+				String minfo[] = ms.getHandString();
+				String ttext = minfo[1] + "\n" + minfo[2] + "\n" + minfo[3] + "\n" + minfo[4];
+				StatusUpdate update = new StatusUpdate("@" + status.getUser().getScreenName() + "\n" + ttext);
+				update.setInReplyToStatusId(status.getId());
+				try{
+					Thread.sleep(3000);
+					twitter.updateStatus(update);
+				}catch(Exception e){
+					System.out.println(e);
+				}
+			}
+		}
+		
+		public void onFavorite(User source, User target, Status favStatus){
+		}
+	}
 }
