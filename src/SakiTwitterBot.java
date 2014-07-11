@@ -1,6 +1,8 @@
 import java.text.MessageFormat;
 import java.util.Calendar;
 import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import twitter4j.Status;
 import twitter4j.StatusUpdate;
@@ -141,18 +143,41 @@ public class SakiTwitterBot{
 			System.out.println(status.getUser().getName() + ": " + status.getText());
 			System.out.println(status.getInReplyToScreenName());
 			
-			if(status.getInReplyToScreenName().equals("sakijbot") && status.getText().indexOf("配牌") >= 0){
-				Mahjong m = new Mahjong();
-				MState ms = m.haipai(status.getUser().getScreenName());
-				String minfo[] = ms.getHandString();
-				String ttext = minfo[1] + "\n" + minfo[2] + "\n" + minfo[3] + "\n" + minfo[4];
-				StatusUpdate update = new StatusUpdate("@" + status.getUser().getScreenName() + "\n" + ttext);
-				update.setInReplyToStatusId(status.getId());
-				try{
-					Thread.sleep(3000);
-					twitter.updateStatus(update);
-				}catch(Exception e){
-					System.out.println(e);
+			if(status.getInReplyToScreenName().equals("sakijbot")){
+				if(status.getText().indexOf("配牌") >= 0 || 
+						status.getText().indexOf("はいぱい") >= 0||
+						status.getText().indexOf("ハイパイ") >= 0){
+					MState ms = Mahjong.haipai(status.getUser().getScreenName());
+					String minfo[] = ms.getHandString();
+					String ttext = minfo[1] + "\n" + minfo[2] + "\n" + minfo[3] + "\n" + minfo[4];
+					System.out.println(ttext); // FIXME: DEBUG CODE
+					StatusUpdate update = new StatusUpdate("@" + status.getUser().getScreenName() + "\n" + ttext);
+					update.setInReplyToStatusId(status.getId());
+					try{
+						Thread.sleep(1000);
+						twitter.updateStatus(update);		
+					}catch(Exception e){
+						System.out.println(e);
+					}
+				}
+				String text = status.getText().substring(9); // @のところ除去
+				System.out.println("Reply Text: " + text); // FIXME: DEBUG CODE
+				Pattern p = Pattern.compile("[0-9]+");
+				Matcher m = p.matcher(text);
+				if(m.find()){
+					int killID = Integer.parseInt(m.group());
+					MState ms = Mahjong.tsumo(status.getUser().getScreenName(), killID);
+					String minfo[] = ms.getHandString();
+					String ttext = minfo[1] + "\n" + minfo[2] + "\n" + minfo[3] + "\n" + minfo[4];
+					System.out.println(ttext); // FIXME: DEBUG CODE
+					StatusUpdate update = new StatusUpdate("@" + status.getUser().getScreenName() + "\n" + ttext);
+					update.setInReplyToStatusId(status.getId());
+					try{
+						Thread.sleep(1000);
+						twitter.updateStatus(update);		
+					}catch(Exception e){
+						System.out.println(e);
+					}
 				}
 			}
 		}
